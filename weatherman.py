@@ -15,9 +15,9 @@ def convert_month(month_input):
 def read_files(year, month):
     headers = []
 
-    for iterate in os.listdir(r"D:\Cogent Labs\github\weatherman\weatherfiles"):
+    for iterate in os.listdir(r"D:\Cogent Labs\weatherfiles\weatherfiles"):
         if year in iterate and (not month or month in iterate):
-            file_path = os.path.join(r"D:\Cogent Labs\github\weatherman\weatherfiles", iterate)
+            file_path = os.path.join(r"D:\Cogent Labs\weatherfiles\weatherfiles", iterate)
 
             with open(file_path, 'r') as csvfile:
                 reader = csv.DictReader(csvfile)
@@ -94,7 +94,6 @@ def print_statistics(args, highest_temp, highest_temp_day, lowest_temp, lowest_t
         print(f"Most Humid Day: {most_humid_day} with humidity {most_humidity}%")
 
 def generate_bar_chart(headers):
-    
     for row in headers:
         date = row['PKT']
 
@@ -116,9 +115,22 @@ def generate_bar_chart(headers):
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Process weather data files.")
-    parser.add_argument("-e", "--year", help="Search files containing the specified year")
-    parser.add_argument("-a", "--year_month", help="Search files containing the specified year and month (in the format 'YYYY/MM' or 'YYYY/Mon')")
-    parser.add_argument("-c", "--bar_chart", help="Search files containing the specified year and month (in the format 'YYYY/MM' or 'YYYY/Mon')")
+    parser.add_argument(
+        "-e", "--year",
+        help="For a given year, display the highest temperature and day,"
+             " lowest temperature and day, most humid day and humidity."
+    )
+    parser.add_argument(
+        "-a", "--year_month",
+        help="For a given month, display the average highest temperature,"
+             " average lowest temperature, average mean humidity."
+    )
+    parser.add_argument(
+        "-c", "--bar_chart",
+        help="For a given month, draw two horizontal bar charts on the console"
+             " for the highest and lowest temperature on each day. Highest in"
+             " red and lowest in blue."
+    )
     return parser.parse_args()
 
 def main():
@@ -149,7 +161,11 @@ def main():
             average_lowest_temp, average_highest_temp
         ) = calculate_statistics(headers)
 
-        print_statistics(args, highest_temp, highest_temp_day, lowest_temp, lowest_temp_day, most_humidity, most_humid_day, mean_humidity, meandata, average_lowest_temp, average_highest_temp)
+        print_statistics(
+            args, highest_temp, highest_temp_day, lowest_temp, lowest_temp_day,
+            most_humidity, most_humid_day, mean_humidity, meandata,
+            average_lowest_temp, average_highest_temp
+        )
 
         if args.bar_chart:
             generate_bar_chart(headers)
