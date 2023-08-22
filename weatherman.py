@@ -1,7 +1,7 @@
-import os
-import csv
 import argparse
 from colorama import Fore, Style
+import csv
+import os
 
 def convert_month(month_input):
     month_names = [
@@ -13,20 +13,20 @@ def convert_month(month_input):
     return None
 
 def read_files(year, month):
-    headers = []
+    weather_details = []
 
     for iterate in os.listdir(r"D:\Cogent Labs\weatherfiles\weatherfiles"):
         if year in iterate and (not month or month in iterate):
             file_path = os.path.join(r"D:\Cogent Labs\weatherfiles\weatherfiles", iterate)
 
-            with open(file_path, 'r') as csvfile:
-                reader = csv.DictReader(csvfile)
+            with open(file_path, 'r') as weather_file:
+                reader = csv.DictReader(weather_file)
                 for row in reader:
-                    headers.append(row)
+                    weather_details.append(row)
     
-    return headers
+    return weather_details
 
-def calculate_statistics(headers):
+def calculate_statistics(weather_details):
     highest_temp = float('-inf')
     lowest_temp = float('inf')
     most_humid_day = None
@@ -36,7 +36,7 @@ def calculate_statistics(headers):
     average_lowest_temp = 0
     average_highest_temp = 0
 
-    for row in headers:
+    for row in weather_details:
         max_temp = row['Max TemperatureC']
         min_temp = row['Min TemperatureC']
         humidity = row['Max Humidity']
@@ -47,11 +47,11 @@ def calculate_statistics(headers):
                 highest_temp = float(max_temp)
                 highest_temp_day = row['PKT']
 
-            if min_temp and float(min_temp) < lowest_temp:
+            elif min_temp and float(min_temp) < lowest_temp:
                 lowest_temp = float(min_temp)
                 lowest_temp_day = row['PKT']
 
-            if humidity and float(humidity) > most_humidity:
+            elif humidity and float(humidity) > most_humidity:
                 most_humidity = float(humidity)
                 most_humid_day = row['PKT']
 
@@ -93,8 +93,8 @@ def print_statistics(args, highest_temp, highest_temp_day, lowest_temp, lowest_t
         print(f"Lowest Temperature: {lowest_temp}°C on {lowest_temp_day}")
         print(f"Most Humid Day: {most_humid_day} with humidity {most_humidity}%")
 
-def generate_bar_chart(headers):
-    for row in headers:
+def generate_bar_chart(weather_details):
+    for row in weather_details:
         date = row['PKT']
 
         try:
@@ -152,14 +152,14 @@ def main():
     if not year:
         print("Please provide a year using the '-e', '-a', or '-c' option.")
     else:
-        headers = read_files(year, month)
+        weather_details = read_files(year, month)
         (
             highest_temp, highest_temp_day,
             lowest_temp, lowest_temp_day,
             most_humidity, most_humid_day,
             mean_humidity, meandata,
             average_lowest_temp, average_highest_temp
-        ) = calculate_statistics(headers)
+        ) = calculate_statistics(weather_details)
 
         print_statistics(
             args, highest_temp, highest_temp_day, lowest_temp, lowest_temp_day,
@@ -168,7 +168,7 @@ def main():
         )
 
         if args.bar_chart:
-            generate_bar_chart(headers)
+            generate_bar_chart(weather_details)
 
 if __name__ == "__main__":
     main()
