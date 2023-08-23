@@ -2,142 +2,143 @@ import argparse
 import calendar
 from colorama import Fore, Style
 import csv
+import glob
 import os
 
-def convert_month(month_input):
+def convert_month(weather_month_input):
     try:
-        month_num = int(month_input)
-        if 1 <= month_num <= 12:
-            return calendar.month_abbr[month_num]
-        else:
-            raise ValueError("Invalid month number")
+        month_number = int(weather_month_input)
+        if 1 <= month_number <= 12:
+            return calendar.month_abbr[month_number]
     except ValueError:
         raise ValueError("Invalid input")
     
-def read_files(get_year, get_month):
+def read_files(weather_year, weather_month):
     weather_details = []
 
-    base_dir = r"D:\Cogent Labs\weatherfiles\weatherfiles"
-    files_to_process = [filename for filename in os.listdir(base_dir)
-                        if get_year in filename and (not get_month or get_month in filename)]
-    
-    for filename in files_to_process:
-        file_path = os.path.join(base_dir, filename)
+    base_directory = r"D:\Cogent Labs\weatherfiles\weatherfiles"
+    pattern = f"*{weather_year}*"
+    if weather_month:
+        pattern = f"*{weather_year}*{weather_month}*"
 
-        with open(file_path, 'r') as weather_file:
+    files_to_process = glob.glob(os.path.join(base_directory, pattern))
+
+    for weathermas_file_path in files_to_process:
+        with open(weathermas_file_path, 'r') as weather_file:
             reader = csv.DictReader(weather_file)
             weather_details.extend(reader)
     
     return weather_details
 
-def calculate_statistics(weather_details, args):
-    highest_temp = float('-inf')
-    lowest_temp = float('inf')
-    highest_temp_day = None
-    lowest_temp_day = None
-    most_humid_day = None
+def calculate_statistics_year(weather_details):
+    highest_temperature = float('-inf')
+    lowest_temperature = float('inf')
+    highest_temperature_day = None
+    lowest_temperature_day = None
+    most_humidity_day = None
     most_humidity = 0
-    mean_value = 0
-    mean_humidity = 0
-    average_lowest_temp = 0
-    average_highest_temp = 0
 
     for row in weather_details:
-        max_temp = row['Max TemperatureC']
-        min_temp = row['Min TemperatureC']
+        maximum_temperature = row['Max TemperatureC']
+        minimum_temperature = row['Min TemperatureC']
         humidity = row['Max Humidity']
-        m_humidity = row[' Mean Humidity']
 
         try:
-            if args.get_year:
-                if max_temp and float(max_temp) > highest_temp:
-                    highest_temp = float(max_temp)
-                    highest_temp_day = row['PKT']
+            if maximum_temperature and float(maximum_temperature) > highest_temperature:
+                highest_temperature = float(maximum_temperature)
+                highest_temperature_day = row['PKT']
 
-                if min_temp is not None and float(min_temp) < lowest_temp:
-                    lowest_temp = float(min_temp)
-                    lowest_temp_day = row['PKT']
+            if minimum_temperature is not None and float(minimum_temperature) < lowest_temperature:
+                lowest_temperature = float(minimum_temperature)
+                lowest_temperature_day = row['PKT']
 
-                if humidity and float(humidity) > most_humidity:
-                    most_humidity = float(humidity)
-                    most_humid_day = row['PKT']
-
-            if args.get_year_month:  
-                if m_humidity and float(m_humidity) > 0:
-                    mean_value += float(m_humidity)
-                    mean_humidity += 1
-
-                if max_temp and float(max_temp) > 0:
-                    average_highest_temp += float(max_temp)
-
-                if min_temp and float(min_temp) > 0:
-                    average_lowest_temp += float(min_temp)
-
+            if humidity and float(humidity) > most_humidity:
+                most_humidity = float(humidity)
+                most_humidity_day = row['PKT']
         except ValueError:
-            continue  
+            continue
 
-    return (
-        highest_temp, highest_temp_day,
-        lowest_temp, lowest_temp_day,
-        most_humidity, most_humid_day,
-        mean_humidity, mean_value,
-        average_lowest_temp, average_highest_temp
-    )
+    return highest_temperature, highest_temperature_day, lowest_temperature, lowest_temperature_day, most_humidity, most_humidity_day
 
+def calculate_statistics_month(weather_details):
+    mean_humidity = 0
+    mean_iteration = 0
+    average_lowest_temperature = 0
+    average_highest_temperature = 0
 
-def print_year_statistics(highest_temp, highest_temp_day, lowest_temp, lowest_temp_day, most_humidity, most_humid_day):
-    print(f"Highest Temperature: {highest_temp}°C on {highest_temp_day}")
-    print(f"Lowest Temperature: {lowest_temp}°C on {lowest_temp_day}")
-    print(f"Most Humid Day: {most_humid_day} with humidity {most_humidity}%")
+    for row in weather_details:
+        mean_humidity_row = row[' Mean Humidity']
+        maximum_temperature = row['Max TemperatureC']
+        minimum_temperature = row['Min TemperatureC']
 
-def print_month_statistics(mean_humidity, mean_value, average_lowest_temp, average_highest_temp):
-    if mean_humidity > 0:
-        average_mean_humidity = mean_value / mean_humidity
-        average_highest_temp /= mean_humidity
-        average_lowest_temp /= mean_humidity
+        try:
+            if mean_humidity_row and float(mean_humidity_row) > 0:
+                mean_humidity += float(mean_humidity_row)
+                mean_iteration += 1
 
-        print(f"Average Lowest Temperature: {average_lowest_temp:.3f}")
-        print(f"Average Highest Temperature: {average_highest_temp:.3f}")
-        print(f"Average Mean Humidity: {average_mean_humidity:.3f}%")
+            if maximum_temperature and float(maximum_temperature) > 0:
+                average_highest_temperature += float(maximum_temperature)
+
+            if minimum_temperature and float(minimum_temperature) > 0:
+                average_lowest_temperature += float(minimum_temperature)
+        except ValueError:
+            continue
+
+    return mean_iteration, mean_humidity, average_lowest_temperature, average_highest_temperature
+
+def print_year_statistics(highest_temperature, highest_temperature_day, lowest_temperature, lowest_temperature_day, most_humidity, most_humidity_day):
+    print(f"Highest Temperature: {highest_temperature}°C on {highest_temperature_day}")
+    print(f"Lowest Temperature: {lowest_temperature}°C on {lowest_temperature_day}")
+    print(f"Most humidity {most_humidity}% on  {most_humidity_day} ")
+
+def print_month_statistics(mean_iteration, mean_humidity, average_lowest_temperature, average_highest_temperature):
+    if mean_iteration > 0:
+        average_mean_iteration = mean_humidity / mean_iteration
+        average_highest_temperature /= mean_iteration
+        average_lowest_temperature /= mean_iteration
+
+        print(f"Average Lowest Temperature: {average_lowest_temperature:.3f}")
+        print(f"Average Highest Temperature: {average_highest_temperature:.3f}")
+        print(f"Average Mean Humidity: {average_mean_iteration:.3f}%")
     else:
         print("No valid data found for the given month.")
 
 
-def generate_bar_chart(weather_details):
+def generate_weather_bar_chart(weather_details):
     for row in weather_details:
         date = row['PKT']
 
         try:
-            max_temp = int(row['Max TemperatureC'])
-            min_temp = int(row['Min TemperatureC'])
+            maximum_temperature = int(row['Max TemperatureC'])
+            minimum_temperature = int(row['Min TemperatureC'])
             reset_code = Style.RESET_ALL
 
             color_code = Fore.RED
-            bar = "+" * max_temp
-            print(f"{color_code}{date} {bar:<25} {max_temp}C{reset_code}")
+            bar = "+" * maximum_temperature
+            print(f"{color_code}{date} {bar:<25} {maximum_temperature}C{reset_code}")
 
             color_code = Fore.BLUE
-            bar = "+" * min_temp
-            print(f"{color_code}{date} {bar:<25} {min_temp}C{reset_code}")
+            bar = "+" * minimum_temperature
+            print(f"{color_code}{date} {bar:<25} {minimum_temperature}C{reset_code}")
 
         except ValueError:
             continue 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description="Process weather data files.")
+    parser = argparse.ArgumentParser(description="Process weatherman data files.")
     parser.add_argument(
-        "-e", "--get_year",
-        help="For a given year, display the highest temperature and day,"
+        "-e", "--weather_year",
+        help="For a given year, it will display the highest temperature and day,"
              " lowest temperature and day, most humid day and humidity."
     )
     parser.add_argument(
-        "-a", "--get_year_month",
-        help="For a given month, display the average highest temperature,"
+        "-a", "--weather_year_month",
+        help="For a given month, it will display the average highest temperature,"
              " average lowest temperature, average mean humidity."
     )
     parser.add_argument(
-        "-c", "--bar_chart",
-        help="For a given month, draw two horizontal bar charts on the console"
+        "-c", "--weather_bar_chart",
+        help="For a given month, it will draw two horizontal bar charts on the console"
              " for the highest and lowest temperature on each day. Highest in"
              " red and lowest in blue."
     )
@@ -145,48 +146,50 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
-    get_year = None
-    get_month = None
+    weather_year = None
+    weather_month = None
     
-    if args.get_year_month:
-        get_year, month_input = args.get_year_month.split('/')
+    if args.weather_year_month:
+        weather_year, weather_month_input = args.weather_year_month.split('/')
         try:
-            get_month = convert_month(month_input)
+            weather_month = convert_month(weather_month_input)
         except ValueError as e:
             print(e)
             return
     
-    if args.get_year:
-        get_year = args.get_year
+    if args.weather_year:
+        weather_year = args.weather_year
 
-    if args.bar_chart:
-        get_year, month_input = args.bar_chart.split('/')
+    if args.weather_bar_chart:
+        weather_year, weather_month_input = args.weather_bar_chart.split('/')
         try:
-            get_month = convert_month(month_input)
+            weather_month = convert_month(weather_month_input)
         except ValueError as e:
             print(e)
             return
 
-    if not get_year:
+    if not weather_year:
         print("Please provide a year using the '-e', '-a', or '-c' option.")
     else:
-        weather_details = read_files(get_year, get_month)
-        (
-            highest_temp, highest_temp_day,
-            lowest_temp, lowest_temp_day,
-            most_humidity, most_humid_day,
-            mean_humidity, mean_value,
-            average_lowest_temp, average_highest_temp
-        ) = calculate_statistics(weather_details, args)
+        weather_details = read_files(weather_year, weather_month)
 
-        if args.get_year:
-            print_year_statistics(highest_temp, highest_temp_day, lowest_temp, lowest_temp_day, most_humidity, most_humid_day)
+        if args.weather_year:
+            (
+                highest_temperature, highest_temperature_day,
+                lowest_temperature, lowest_temperature_day,
+                most_humidity, most_humidity_day
+            ) = calculate_statistics_year(weather_details)
+            print_year_statistics(highest_temperature, highest_temperature_day, lowest_temperature, lowest_temperature_day, most_humidity, most_humidity_day)
 
-        if args.get_year_month:
-            print_month_statistics(mean_humidity, mean_value, average_lowest_temp, average_highest_temp)
+        if args.weather_year_month:
+            (
+                mean_iteration, mean_humidity,
+                average_lowest_temperature, average_highest_temperature
+            ) = calculate_statistics_month(weather_details)
+            print_month_statistics(mean_iteration, mean_humidity, average_lowest_temperature, average_highest_temperature)
 
-        if args.bar_chart:
-            generate_bar_chart(weather_details)
+        if args.weather_bar_chart:
+            generate_weather_bar_chart(weather_details)
 
 if __name__ == "__main__":
     main()
