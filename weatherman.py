@@ -31,12 +31,14 @@ def read_files(weather_year, weather_month):
     return weather_details
 
 def calculate_statistics_year(weather_details):
-    highest_temperature = float('-inf')
-    lowest_temperature = float('inf')
-    highest_temperature_day = None
-    lowest_temperature_day = None
-    most_humidity_day = None
-    most_humidity = 0
+    year_statistics = {
+        'highest_temperature': float('-inf'),
+        'lowest_temperature': float('inf'),
+        'highest_temperature_day': None,
+        'lowest_temperature_day': None,
+        'most_humidity_day': None,
+        'most_humidity': 0
+    }
 
     for row in weather_details:
         maximum_temperature = row['Max TemperatureC']
@@ -44,27 +46,30 @@ def calculate_statistics_year(weather_details):
         humidity = row['Max Humidity']
 
         try:
-            if maximum_temperature and float(maximum_temperature) > highest_temperature:
-                highest_temperature = float(maximum_temperature)
-                highest_temperature_day = row['PKT']
+            if maximum_temperature and float(maximum_temperature) > year_statistics['highest_temperature']:
+                year_statistics['highest_temperature'] = float(maximum_temperature)
+                year_statistics['highest_temperature_day'] = row['PKT']
 
-            if minimum_temperature is not None and float(minimum_temperature) < lowest_temperature:
-                lowest_temperature = float(minimum_temperature)
-                lowest_temperature_day = row['PKT']
+            if minimum_temperature is not None and float(minimum_temperature) < year_statistics['lowest_temperature']:
+                year_statistics['lowest_temperature'] = float(minimum_temperature)
+                year_statistics['lowest_temperature_day'] = row['PKT']
 
-            if humidity and float(humidity) > most_humidity:
-                most_humidity = float(humidity)
-                most_humidity_day = row['PKT']
+            if humidity and float(humidity) > year_statistics['most_humidity']:
+                year_statistics['most_humidity'] = float(humidity)
+                year_statistics['most_humidity_day'] = row['PKT']
         except ValueError:
             continue
 
-    return highest_temperature, highest_temperature_day, lowest_temperature, lowest_temperature_day, most_humidity, most_humidity_day
+    return year_statistics
+
 
 def calculate_statistics_month(weather_details):
-    mean_humidity = 0
-    mean_iteration = 0
-    average_lowest_temperature = 0
-    average_highest_temperature = 0
+    month_statistics = {
+        'mean_humidity': 0,
+        'mean_iteration': 0,
+        'average_lowest_temperature': 0,
+        'average_highest_temperature': 0
+    }
 
     for row in weather_details:
         mean_humidity_row = row[' Mean Humidity']
@@ -73,18 +78,19 @@ def calculate_statistics_month(weather_details):
 
         try:
             if mean_humidity_row and float(mean_humidity_row) > 0:
-                mean_humidity += float(mean_humidity_row)
-                mean_iteration += 1
+                month_statistics['mean_humidity'] += float(mean_humidity_row)
+                month_statistics['mean_iteration'] += 1
 
             if maximum_temperature and float(maximum_temperature) > 0:
-                average_highest_temperature += float(maximum_temperature)
+                month_statistics['average_highest_temperature'] += float(maximum_temperature)
 
             if minimum_temperature and float(minimum_temperature) > 0:
-                average_lowest_temperature += float(minimum_temperature)
+                month_statistics['average_lowest_temperature'] += float(minimum_temperature)
         except ValueError:
             continue
 
-    return mean_iteration, mean_humidity, average_lowest_temperature, average_highest_temperature
+    return month_statistics
+
 
 def print_year_statistics(highest_temperature, highest_temperature_day, lowest_temperature, lowest_temperature_day, most_humidity, most_humidity_day):
     print(f"Highest Temperature: {highest_temperature}°C on {highest_temperature_day}")
@@ -148,7 +154,7 @@ def main():
     args = parse_arguments()
     weather_year = None
     weather_month = None
-    
+
     if args.weather_year_month:
         weather_year, weather_month_input = args.weather_year_month.split('/')
         try:
@@ -156,7 +162,7 @@ def main():
         except ValueError as e:
             print(e)
             return
-    
+
     if args.weather_year:
         weather_year = args.weather_year
 
@@ -174,19 +180,12 @@ def main():
         weather_details = read_files(weather_year, weather_month)
 
         if args.weather_year:
-            (
-                highest_temperature, highest_temperature_day,
-                lowest_temperature, lowest_temperature_day,
-                most_humidity, most_humidity_day
-            ) = calculate_statistics_year(weather_details)
-            print_year_statistics(highest_temperature, highest_temperature_day, lowest_temperature, lowest_temperature_day, most_humidity, most_humidity_day)
+            statistics_year = calculate_statistics_year(weather_details)
+            print_year_statistics(**statistics_year)
 
         if args.weather_year_month:
-            (
-                mean_iteration, mean_humidity,
-                average_lowest_temperature, average_highest_temperature
-            ) = calculate_statistics_month(weather_details)
-            print_month_statistics(mean_iteration, mean_humidity, average_lowest_temperature, average_highest_temperature)
+            statistics_month = calculate_statistics_month(weather_details)
+            print_month_statistics(**statistics_month)
 
         if args.weather_bar_chart:
             generate_weather_bar_chart(weather_details)
