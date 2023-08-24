@@ -119,7 +119,7 @@ def print_monthly_weather_record(mean_iteration, mean_humidity, average_lowest_t
         print("No valid data found for the given month.")
 
 
-def generate_weather_bar_chart(weather_records):
+def print_weather_bar_chart(weather_records):
     for weather_record in weather_records:
         date = weather_record['PKT']
 
@@ -188,7 +188,7 @@ def main():
             try:
                 weather_month = convert_month(weather_month_input)
                 weather_records = read_weather_files(weather_year, weather_month)
-                generate_weather_bar_chart(weather_records)
+                print_weather_bar_chart(weather_records)
             except ValueError as error:
                 print("invalid input for bar_chart", error)
                 return
