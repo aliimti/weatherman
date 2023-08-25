@@ -93,16 +93,16 @@ def calculate_monthly_weather_record(weather_records):
     return month_weather_record
 
 
-def print_yearly_weather_record(highest_temperature, highest_temperature_day, lowest_temperature, lowest_temperature_day, most_humidity, most_humidity_day):
-    print(f"Highest Temperature: {highest_temperature}°C on {highest_temperature_day}")
-    print(f"Lowest Temperature: {lowest_temperature}°C on {lowest_temperature_day}")
-    print(f"Most humidity {most_humidity}% on {most_humidity_day}")
+def print_yearly_weather_record(weather_record):
+    print(f"Highest Temperature: {weather_record['highest_temperature']}°C on {weather_record['highest_temperature_day']}")
+    print(f"Lowest Temperature: {weather_record['lowest_temperature']}°C on {weather_record['lowest_temperature_day']}")
+    print(f"Most humidity {weather_record['most_humidity']}% on {weather_record['most_humidity_day']}")
 
 
-def print_monthly_weather_record(mean_humidity, average_lowest_temperature, average_highest_temperature):
-    print(f"Average Lowest Temperature: {average_lowest_temperature:.3f}°C")
-    print(f"Average Highest Temperature: {average_highest_temperature:.3f}°C")
-    print(f"Average Mean Humidity: {mean_humidity:.3f}%")
+def print_monthly_weather_record(monthly_data):
+    print(f"Average Lowest Temperature: {monthly_data['average_lowest_temperature']:.3f}°C")
+    print(f"Average Highest Temperature: {monthly_data['average_highest_temperature']:.3f}°C")
+    print(f"Average Mean Humidity: {monthly_data['mean_humidity']:.3f}%")
 
 
 def generate_weather_bar_chart(weather_records):
@@ -157,10 +157,13 @@ def parse_arguments():
 
 def fetch_monthly_conditions(parsed_arguments, base_directory):
     weather_year, weather_month_input = parsed_arguments.weather_year_month.split('/')
-    weather_month = convert_month(weather_month_input)
-    weather_records = read_weather_files(weather_year, weather_month, base_directory)
-    statistics_month = calculate_monthly_weather_record(weather_records)
-    print_monthly_weather_record(**statistics_month)
+    try:
+        weather_month = convert_month(weather_month_input)
+        weather_records = read_weather_files(weather_year, weather_month, base_directory)
+        statistics_month = calculate_monthly_weather_record(weather_records)
+        print_monthly_weather_record(statistics_month)
+    except ValueError as error:
+        print("Invalid input for year_month", error)
 
 
 def fetch_barchart_conditions(parsed_arguments, base_directory):
@@ -175,7 +178,7 @@ def fetch_yearly_conditions(parsed_arguments, base_directory):
     weather_year = parsed_arguments.weather_year
     weather_records = read_weather_files(weather_year, None, base_directory)
     statistics_year = calculate_yearly_weather_records(weather_records)
-    print_yearly_weather_record(**statistics_year)
+    print_yearly_weather_record(statistics_year)
 
 
 def main():
