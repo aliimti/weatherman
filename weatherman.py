@@ -21,7 +21,7 @@ def convert_month(weather_month_input):
         return calendar.month_abbr[month_number]
 
 
-def recieve_weather_file_names(base_directory, weather_year, weather_month=None):
+def receive_weather_file_names(base_directory, weather_year, weather_month=None):
     pattern = f"*{weather_year}*"
     if weather_month:
         pattern = f"*{weather_year}*{weather_month}*"
@@ -33,7 +33,7 @@ def recieve_weather_file_names(base_directory, weather_year, weather_month=None)
 def read_weather_files(weather_year, weather_month, base_directory):
     weather_records = []
 
-    weatherman_file_names = recieve_weather_file_names(base_directory, weather_year, weather_month)
+    weatherman_file_names = receive_weather_file_names(base_directory, weather_year, weather_month)
 
     for weathermas_file_path in weatherman_file_names:
         with open(weathermas_file_path, 'r') as weather_file:
@@ -96,7 +96,7 @@ def calculate_monthly_weather_record(weather_records):
 def print_yearly_weather_record(highest_temperature, highest_temperature_day, lowest_temperature, lowest_temperature_day, most_humidity, most_humidity_day):
     print(f"Highest Temperature: {highest_temperature}°C on {highest_temperature_day}")
     print(f"Lowest Temperature: {lowest_temperature}°C on {lowest_temperature_day}")
-    print(f"Most humidity {most_humidity}% on  {most_humidity_day} ")
+    print(f"Most humidity {most_humidity}% on {most_humidity_day}")
 
 
 def print_monthly_weather_record(mean_humidity, average_lowest_temperature, average_highest_temperature):
@@ -108,7 +108,7 @@ def print_monthly_weather_record(mean_humidity, average_lowest_temperature, aver
 def generate_weather_bar_chart(weather_records):
     for weather_record in weather_records:
         date = weather_record['PKT']
-        
+
         max_temp_str = weather_record['Max TemperatureC']
         min_temp_str = weather_record['Min TemperatureC']
 
@@ -127,7 +127,7 @@ def generate_weather_bar_chart(weather_records):
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description="Process weatherman data files.")
+    parser = argparse.ArgumentParser(description="Process weatherman data files")
     parser.add_argument(
         "-e", "--weather_year",
         help="For a given year, it will display the highest temperature and day,"
@@ -145,15 +145,13 @@ def parse_arguments():
              " red and lowest in blue."
     )
     args = parser.parse_args()
-    
+
     if args.weather_year_month and not validate_input_date(args.weather_year_month):
         parser.error("Invalid input for -a option. Please use the format 'yyyy/mm' for year and month.")
-    
+
     if args.weather_bar_chart and not validate_input_date(args.weather_bar_chart):
         parser.error("Invalid input for -c option. Please use the format 'yyyy/mm' for year and month.")
 
-    
-    
     return args
 
 
@@ -164,12 +162,14 @@ def fetch_monthly_conditions(parsed_arguments, base_directory):
     statistics_month = calculate_monthly_weather_record(weather_records)
     print_monthly_weather_record(**statistics_month)
 
+
 def fetch_barchart_conditions(parsed_arguments, base_directory):
     weather_year, weather_month_input = parsed_arguments.weather_bar_chart.split('/')
-    
+
     weather_month = convert_month(weather_month_input)
     weather_records = read_weather_files(weather_year, weather_month, base_directory)
     generate_weather_bar_chart(weather_records)
+
 
 def fetch_yearly_conditions(parsed_arguments, base_directory):
     weather_year = parsed_arguments.weather_year
@@ -177,20 +177,20 @@ def fetch_yearly_conditions(parsed_arguments, base_directory):
     statistics_year = calculate_yearly_weather_records(weather_records)
     print_yearly_weather_record(**statistics_year)
 
+
 def main():
     base_directory = r"D:\Cogent Labs\weatherfiles\weatherfiles"
     parsed_arguments = parse_arguments()
-    
+
     weatherman_workflow = {
         "weather_year": lambda: fetch_yearly_conditions(parsed_arguments, base_directory),
         "weather_year_month": lambda: fetch_monthly_conditions(parsed_arguments, base_directory),
         "weather_bar_chart": lambda: fetch_barchart_conditions(parsed_arguments, base_directory),
     }
-    
+
     for weatherman_action_name, weatherman_action_function in weatherman_workflow.items():
         if hasattr(parsed_arguments, weatherman_action_name) and getattr(parsed_arguments, weatherman_action_name):
             weatherman_action_function()
-
 
 
 if __name__ == "__main__":
