@@ -3,34 +3,39 @@ import calendar
 import csv
 import glob
 import os
+import re
+import statistics
 from colorama import Fore, Style
 
 
+def validate_input_date(date_input):
+    pattern = r'^\d{4}/(0[1-9]|1[0-2])$'
+    if re.match(pattern, date_input):
+        return True
+    return False
+
+
 def convert_month(weather_month_input):
-    try:
-        month_number = int(weather_month_input)
-        if 1 <= month_number <= 12:
-            return calendar.month_abbr[month_number]
-    except ValueError:
-        raise ValueError("Invalid input: Please provide a valid month number between 1 and 12")
+    month_number = int(weather_month_input)
+    if 1 <= month_number <= 12:
+        return calendar.month_abbr[month_number]
 
 
-def generate_weather_file_names(base_directory, weather_year, weather_month=None):
+def recieve_weather_file_names(base_directory, weather_year, weather_month=None):
     pattern = f"*{weather_year}*"
     if weather_month:
         pattern = f"*{weather_year}*{weather_month}*"
 
-    files_to_process = glob.glob(os.path.join(base_directory, pattern))
-    return files_to_process
+    weatherman_file_names = glob.glob(os.path.join(base_directory, pattern))
+    return weatherman_file_names
 
 
-def read_weather_files(weather_year, weather_month):
+def read_weather_files(weather_year, weather_month, base_directory):
     weather_records = []
 
-    base_directory = r"D:\Cogent Labs\weatherfiles\weatherfiles"
-    files_to_process = generate_weather_file_names(base_directory, weather_year, weather_month)
+    weatherman_file_names = recieve_weather_file_names(base_directory, weather_year, weather_month)
 
-    for weathermas_file_path in files_to_process:
+    for weathermas_file_path in weatherman_file_names:
         with open(weathermas_file_path, 'r') as weather_file:
             weather_file_reader = csv.DictReader(weather_file)
             weather_records.extend(weather_file_reader)
@@ -49,53 +54,41 @@ def calculate_yearly_weather_records(weather_records):
     }
 
     for weather_record in weather_records:
-        maximum_temperature = weather_record['Max TemperatureC']
-        minimum_temperature = weather_record['Min TemperatureC']
-        humidity = weather_record['Max Humidity']
+        maximum_temperature = weather_record.get('Max TemperatureC')
+        minimum_temperature = weather_record.get('Min TemperatureC')
+        humidity = weather_record.get('Max Humidity')
 
-        try:
-            if maximum_temperature and float(maximum_temperature) > yearly_weather_record['highest_temperature']:
-                yearly_weather_record['highest_temperature'] = float(maximum_temperature)
-                yearly_weather_record['highest_temperature_day'] = weather_record['PKT']
+        if maximum_temperature:
+            yearly_weather_record['highest_temperature'], yearly_weather_record['highest_temperature_day'] = max(
+                (yearly_weather_record['highest_temperature'], yearly_weather_record['highest_temperature_day']),
+                (float(maximum_temperature), weather_record['PKT'])
+            )
 
-            if minimum_temperature is not None and float(minimum_temperature) < yearly_weather_record['lowest_temperature']:
-                yearly_weather_record['lowest_temperature'] = float(minimum_temperature)
-                yearly_weather_record['lowest_temperature_day'] = weather_record['PKT']
+        if minimum_temperature:
+            yearly_weather_record['lowest_temperature'], yearly_weather_record['lowest_temperature_day'] = min(
+                (yearly_weather_record['lowest_temperature'], yearly_weather_record['lowest_temperature_day']),
+                (float(minimum_temperature), weather_record['PKT'])
+            )
 
-            if humidity and float(humidity) > yearly_weather_record['most_humidity']:
-                yearly_weather_record['most_humidity'] = float(humidity)
-                yearly_weather_record['most_humidity_day'] = weather_record['PKT']
-        except ValueError:
-            continue
+        if humidity:
+            yearly_weather_record['most_humidity'], yearly_weather_record['most_humidity_day'] = max(
+                (yearly_weather_record['most_humidity'], yearly_weather_record['most_humidity_day']),
+                (float(humidity), weather_record['PKT'])
+            )
 
     return yearly_weather_record
 
 
 def calculate_monthly_weather_record(weather_records):
+    mean_humidity_values = [float(record.get(' Mean Humidity') or 0) for record in weather_records]
+    highest_temperature_values = [float(record.get('Max TemperatureC') or 0) for record in weather_records]
+    lowest_temperature_values = [float(record.get('Min TemperatureC') or 0) for record in weather_records]
+
     month_weather_record = {
-        'mean_humidity': 0,
-        'mean_iteration': 0,
-        'average_lowest_temperature': 0,
-        'average_highest_temperature': 0
+        'mean_humidity': statistics.mean(mean_humidity_values),
+        'average_lowest_temperature': statistics.mean(lowest_temperature_values),
+        'average_highest_temperature': statistics.mean(highest_temperature_values),
     }
-
-    for weather_record in weather_records:
-        mean_humidity_weather_record = weather_record[' Mean Humidity']
-        maximum_temperature = weather_record['Max TemperatureC']
-        minimum_temperature = weather_record['Min TemperatureC']
-
-        try:
-            if mean_humidity_weather_record and float(mean_humidity_weather_record) > 0:
-                month_weather_record['mean_humidity'] += float(mean_humidity_weather_record)
-                month_weather_record['mean_iteration'] += 1
-
-            if maximum_temperature and float(maximum_temperature) > 0:
-                month_weather_record['average_highest_temperature'] += float(maximum_temperature)
-
-            if minimum_temperature and float(minimum_temperature) > 0:
-                month_weather_record['average_lowest_temperature'] += float(minimum_temperature)
-        except ValueError:
-            continue
 
     return month_weather_record
 
@@ -106,26 +99,22 @@ def print_yearly_weather_record(highest_temperature, highest_temperature_day, lo
     print(f"Most humidity {most_humidity}% on  {most_humidity_day} ")
 
 
-def print_monthly_weather_record(mean_iteration, mean_humidity, average_lowest_temperature, average_highest_temperature):
-    if mean_iteration > 0:
-        average_mean_iteration = mean_humidity / mean_iteration
-        average_highest_temperature /= mean_iteration
-        average_lowest_temperature /= mean_iteration
-
-        print(f"Average Lowest Temperature: {average_lowest_temperature:.3f}")
-        print(f"Average Highest Temperature: {average_highest_temperature:.3f}")
-        print(f"Average Mean Humidity: {average_mean_iteration:.3f}%")
-    else:
-        print("No valid data found for the given month.")
+def print_monthly_weather_record(mean_humidity, average_lowest_temperature, average_highest_temperature):
+    print(f"Average Lowest Temperature: {average_lowest_temperature:.3f}°C")
+    print(f"Average Highest Temperature: {average_highest_temperature:.3f}°C")
+    print(f"Average Mean Humidity: {mean_humidity:.3f}%")
 
 
-def print_weather_bar_chart(weather_records):
+def generate_weather_bar_chart(weather_records):
     for weather_record in weather_records:
         date = weather_record['PKT']
+        
+        max_temp_str = weather_record['Max TemperatureC']
+        min_temp_str = weather_record['Min TemperatureC']
 
-        try:
-            maximum_temperature = int(weather_record['Max TemperatureC'])
-            minimum_temperature = int(weather_record['Min TemperatureC'])
+        if max_temp_str.isdigit() and min_temp_str.isdigit():
+            maximum_temperature = int(max_temp_str)
+            minimum_temperature = int(min_temp_str)
             reset_code = Style.RESET_ALL
 
             color_code = Fore.RED
@@ -135,9 +124,6 @@ def print_weather_bar_chart(weather_records):
             color_code = Fore.BLUE
             bar = "+" * minimum_temperature
             print(f"{color_code}{date} {bar:<1} {minimum_temperature}C{reset_code}")
-
-        except ValueError:
-            continue
 
 
 def parse_arguments():
@@ -158,43 +144,53 @@ def parse_arguments():
              " for the highest and lowest temperature on each day. Highest in"
              " red and lowest in blue."
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    
+    if args.weather_year_month and not validate_input_date(args.weather_year_month):
+        parser.error("Invalid input for -a option. Please use the format 'yyyy/mm' for year and month.")
+    
+    if args.weather_bar_chart and not validate_input_date(args.weather_bar_chart):
+        parser.error("Invalid input for -c option. Please use the format 'yyyy/mm' for year and month.")
 
+    
+    
+    return args
+
+
+def fetch_monthly_conditions(parsed_arguments, base_directory):
+    weather_year, weather_month_input = parsed_arguments.weather_year_month.split('/')
+    weather_month = convert_month(weather_month_input)
+    weather_records = read_weather_files(weather_year, weather_month, base_directory)
+    statistics_month = calculate_monthly_weather_record(weather_records)
+    print_monthly_weather_record(**statistics_month)
+
+def fetch_barchart_conditions(parsed_arguments, base_directory):
+    weather_year, weather_month_input = parsed_arguments.weather_bar_chart.split('/')
+    
+    weather_month = convert_month(weather_month_input)
+    weather_records = read_weather_files(weather_year, weather_month, base_directory)
+    generate_weather_bar_chart(weather_records)
+
+def fetch_yearly_conditions(parsed_arguments, base_directory):
+    weather_year = parsed_arguments.weather_year
+    weather_records = read_weather_files(weather_year, None, base_directory)
+    statistics_year = calculate_yearly_weather_records(weather_records)
+    print_yearly_weather_record(**statistics_year)
 
 def main():
+    base_directory = r"D:\Cogent Labs\weatherfiles\weatherfiles"
     parsed_arguments = parse_arguments()
-    weather_year = None
-    weather_month = None
-    try:
-        if parsed_arguments.weather_year:
-            weather_year = parsed_arguments.weather_year
-            weather_records = read_weather_files(weather_year, weather_month)
-            statistics_year = calculate_yearly_weather_records(weather_records)
-            print_yearly_weather_record(**statistics_year)
+    
+    weatherman_workflow = {
+        "weather_year": lambda: fetch_yearly_conditions(parsed_arguments, base_directory),
+        "weather_year_month": lambda: fetch_monthly_conditions(parsed_arguments, base_directory),
+        "weather_bar_chart": lambda: fetch_barchart_conditions(parsed_arguments, base_directory),
+    }
+    
+    for weatherman_action_name, weatherman_action_function in weatherman_workflow.items():
+        if hasattr(parsed_arguments, weatherman_action_name) and getattr(parsed_arguments, weatherman_action_name):
+            weatherman_action_function()
 
-        if parsed_arguments.weather_year_month:
-            weather_year, weather_month_input = parsed_arguments.weather_year_month.split('/')
-            try:
-                weather_month = convert_month(weather_month_input)
-                weather_records = read_weather_files(weather_year, weather_month)
-                statistics_month = calculate_monthly_weather_record(weather_records)
-                print_monthly_weather_record(**statistics_month)
-            except ValueError as error:
-                print("invalid input", error)
-                return
-
-        if parsed_arguments.weather_bar_chart:
-            weather_year, weather_month_input = parsed_arguments.weather_bar_chart.split('/')
-            try:
-                weather_month = convert_month(weather_month_input)
-                weather_records = read_weather_files(weather_year, weather_month)
-                print_weather_bar_chart(weather_records)
-            except ValueError as error:
-                print("invalid input for bar_chart", error)
-                return
-
-    except:
-        print("Please provide a year using the '-e', '-a', or '-c' option.")
 
 
 if __name__ == "__main__":
