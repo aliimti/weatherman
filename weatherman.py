@@ -157,18 +157,14 @@ def parse_arguments():
 
 def fetch_monthly_conditions(parsed_arguments, base_directory):
     weather_year, weather_month_input = parsed_arguments.weather_year_month.split('/')
-    try:
-        weather_month = convert_month(weather_month_input)
-        weather_records = read_weather_files(weather_year, weather_month, base_directory)
-        statistics_month = calculate_monthly_weather_record(weather_records)
-        print_monthly_weather_record(statistics_month)
-    except ValueError as error:
-        print("Invalid input for year_month", error)
+    weather_month = convert_month(weather_month_input)
+    weather_records = read_weather_files(weather_year, weather_month, base_directory)
+    statistics_month = calculate_monthly_weather_record(weather_records)
+    print_monthly_weather_record(statistics_month)
 
 
 def fetch_barchart_conditions(parsed_arguments, base_directory):
     weather_year, weather_month_input = parsed_arguments.weather_bar_chart.split('/')
-
     weather_month = convert_month(weather_month_input)
     weather_records = read_weather_files(weather_year, weather_month, base_directory)
     generate_weather_bar_chart(weather_records)
