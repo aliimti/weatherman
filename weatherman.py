@@ -21,60 +21,40 @@ def convert_month(weather_month_input):
         return calendar.month_abbr[month_number]
 
 
-def receive_weather_file_names(base_directory, weather_year, weather_month=None):
-    pattern = f"*{weather_year}*"
+def receive_weather_file_names(BASE_DIRECTORY, yearly_temperatures, weather_month=None):
+    pattern = f"*{yearly_temperatures}*"
     if weather_month:
-        pattern = f"*{weather_year}*{weather_month}*"
+        pattern = f"*{yearly_temperatures}*{weather_month}*"
 
-    weatherman_file_names = glob.glob(os.path.join(base_directory, pattern))
+    weatherman_file_names = glob.glob(os.path.join(BASE_DIRECTORY, pattern))
     return weatherman_file_names
 
 
-def read_weather_files(weather_year, weather_month, base_directory):
+def read_weather_files(yearly_temperatures, weather_month, BASE_DIRECTORY):
     weather_records = []
 
-    weatherman_file_names = receive_weather_file_names(base_directory, weather_year, weather_month)
+    weatherman_file_names = receive_weather_file_names(BASE_DIRECTORY, yearly_temperatures, weather_month)
 
     for weathermas_file_path in weatherman_file_names:
         with open(weathermas_file_path, 'r') as weather_file:
             weather_file_reader = csv.DictReader(weather_file)
             weather_records.extend(weather_file_reader)
-
     return weather_records
 
 
 def calculate_yearly_weather_records(weather_records):
+    maximum_temp_record = max(weather_records, key=lambda x: float(x.get('Max TemperatureC', '-inf') or '-inf'))
+    minimum_temp_record = min(weather_records, key=lambda x: float(x.get('Min TemperatureC', 'inf') or 'inf'))
+    most_humidity_record = max(weather_records, key=lambda x: float(x.get('Max Humidity', '0') or '0'))
+
     yearly_weather_record = {
-        'highest_temperature': float('-inf'),
-        'lowest_temperature': float('inf'),
-        'highest_temperature_day': None,
-        'lowest_temperature_day': None,
-        'most_humidity_day': None,
-        'most_humidity': 0
+        'max_temp_value': float(maximum_temp_record['Max TemperatureC']),
+        'max_temp_day': maximum_temp_record['PKT'],
+        'min_temp_value': float(minimum_temp_record['Min TemperatureC']),
+        'min_temp_day': minimum_temp_record['PKT'],
+        'max_humidity_value': float(most_humidity_record['Max Humidity']),
+        'max_humidity_day': most_humidity_record['PKT']
     }
-
-    for weather_record in weather_records:
-        maximum_temperature = weather_record.get('Max TemperatureC')
-        minimum_temperature = weather_record.get('Min TemperatureC')
-        humidity = weather_record.get('Max Humidity')
-
-        if maximum_temperature:
-            yearly_weather_record['highest_temperature'], yearly_weather_record['highest_temperature_day'] = max(
-                (yearly_weather_record['highest_temperature'], yearly_weather_record['highest_temperature_day']),
-                (float(maximum_temperature), weather_record['PKT'])
-            )
-
-        if minimum_temperature:
-            yearly_weather_record['lowest_temperature'], yearly_weather_record['lowest_temperature_day'] = min(
-                (yearly_weather_record['lowest_temperature'], yearly_weather_record['lowest_temperature_day']),
-                (float(minimum_temperature), weather_record['PKT'])
-            )
-
-        if humidity:
-            yearly_weather_record['most_humidity'], yearly_weather_record['most_humidity_day'] = max(
-                (yearly_weather_record['most_humidity'], yearly_weather_record['most_humidity_day']),
-                (float(humidity), weather_record['PKT'])
-            )
 
     return yearly_weather_record
 
@@ -94,9 +74,9 @@ def calculate_monthly_weather_record(weather_records):
 
 
 def print_yearly_weather_record(weather_record):
-    print(f"Highest Temperature: {weather_record['highest_temperature']}°C on {weather_record['highest_temperature_day']}")
-    print(f"Lowest Temperature: {weather_record['lowest_temperature']}°C on {weather_record['lowest_temperature_day']}")
-    print(f"Most humidity {weather_record['most_humidity']}% on {weather_record['most_humidity_day']}")
+    print(f"Maximum Temperature {weather_record['max_temp_value']}°C on {weather_record['max_temp_day']}")
+    print(f"Minimum Temperature {weather_record['min_temp_value']}°C on {weather_record['min_temp_day']}")
+    print(f"Most Humidity {weather_record['max_humidity_value']}% on {weather_record['max_humidity_day']}")
 
 
 def print_monthly_weather_record(monthly_data):
@@ -105,7 +85,7 @@ def print_monthly_weather_record(monthly_data):
     print(f"Average Mean Humidity: {monthly_data['mean_humidity']:.3f}%")
 
 
-def generate_weather_bar_chart(weather_records):
+def generate_weatherman_monthly_barchart(weather_records):
     for weather_record in weather_records:
         date = weather_record['PKT']
 
@@ -129,68 +109,68 @@ def generate_weather_bar_chart(weather_records):
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Process weatherman data files")
     parser.add_argument(
-        "-e", "--weather_year",
+        "-e", "--yearly_temperatures",
         help="For a given year, it will display the highest temperature and day,"
              " lowest temperature and day, most humid day and humidity."
     )
     parser.add_argument(
-        "-a", "--weather_year_month",
+        "-a", "--weatherman_monthly_temperatures",
         help="For a given month, it will display the average highest temperature,"
              " average lowest temperature, average mean humidity."
     )
     parser.add_argument(
-        "-c", "--weather_bar_chart",
+        "-c", "--weatherman_monthly_barchart",
         help="For a given month, it will draw two horizontal bar charts on the console"
              " for the highest and lowest temperature on each day. Highest in"
              " red and lowest in blue."
     )
     args = parser.parse_args()
 
-    if args.weather_year_month and not validate_input_date(args.weather_year_month):
+    if args.weatherman_monthly_temperatures and not validate_input_date(args.weatherman_monthly_temperatures):
         parser.error("Invalid input for -a option. Please use the format 'yyyy/mm' for year and month.")
 
-    if args.weather_bar_chart and not validate_input_date(args.weather_bar_chart):
+    if args.weatherman_monthly_barchart and not validate_input_date(args.weatherman_monthly_barchart):
         parser.error("Invalid input for -c option. Please use the format 'yyyy/mm' for year and month.")
 
     return args
 
 
-def fetch_monthly_conditions(parsed_arguments, base_directory):
-    weather_year, weather_month_input = parsed_arguments.weather_year_month.split('/')
+def monthly_weather_results(parsed_argument, BASE_DIRECTORY):
+    yearly_temperatures, weather_month_input = parsed_argument.weatherman_monthly_temperatures.split('/')
     weather_month = convert_month(weather_month_input)
-    weather_records = read_weather_files(weather_year, weather_month, base_directory)
+    weather_records = read_weather_files(yearly_temperatures, weather_month, BASE_DIRECTORY)
     statistics_month = calculate_monthly_weather_record(weather_records)
     print_monthly_weather_record(statistics_month)
 
 
-def fetch_barchart_conditions(parsed_arguments, base_directory):
-    weather_year, weather_month_input = parsed_arguments.weather_bar_chart.split('/')
+def barchart_weather_results(parsed_argument, BASE_DIRECTORY):
+    yearly_temperatures, weather_month_input = parsed_argument.weatherman_monthly_barchart.split('/')
     weather_month = convert_month(weather_month_input)
-    weather_records = read_weather_files(weather_year, weather_month, base_directory)
-    generate_weather_bar_chart(weather_records)
+    weather_records = read_weather_files(yearly_temperatures, weather_month, BASE_DIRECTORY)
+    generate_weatherman_monthly_barchart(weather_records)
 
 
-def fetch_yearly_conditions(parsed_arguments, base_directory):
-    weather_year = parsed_arguments.weather_year
-    weather_records = read_weather_files(weather_year, None, base_directory)
+def yearly_weather_results(parsed_argument, BASE_DIRECTORY):
+    yearly_temperatures = parsed_argument.yearly_temperatures
+    weather_records = read_weather_files(yearly_temperatures, None, BASE_DIRECTORY)
     statistics_year = calculate_yearly_weather_records(weather_records)
     print_yearly_weather_record(statistics_year)
 
 
 def main():
-    base_directory = r"D:\Cogent Labs\weatherfiles\weatherfiles"
-    parsed_arguments = parse_arguments()
+    BASE_DIRECTORY = r"D:\Cogent Labs\weatherfiles\weatherfiles"
+    parsed_argument = parse_arguments()
 
     weatherman_workflow = {
-        "weather_year": lambda: fetch_yearly_conditions(parsed_arguments, base_directory),
-        "weather_year_month": lambda: fetch_monthly_conditions(parsed_arguments, base_directory),
-        "weather_bar_chart": lambda: fetch_barchart_conditions(parsed_arguments, base_directory),
+        "yearly_temperatures": lambda: yearly_weather_results(parsed_argument, BASE_DIRECTORY),
+        "weatherman_monthly_temperatures": lambda: monthly_weather_results(parsed_argument, BASE_DIRECTORY),
+        "weatherman_monthly_barchart": lambda: barchart_weather_results(parsed_argument, BASE_DIRECTORY),
     }
 
     for weatherman_action_name, weatherman_action_function in weatherman_workflow.items():
-        if hasattr(parsed_arguments, weatherman_action_name) and getattr(parsed_arguments, weatherman_action_name):
+        if hasattr(parsed_argument, weatherman_action_name) and getattr(parsed_argument, weatherman_action_name):
             weatherman_action_function()
 
-
+    
 if __name__ == "__main__":
     main()
