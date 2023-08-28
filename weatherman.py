@@ -162,14 +162,14 @@ def main():
     parsed_argument = parse_arguments()
 
     weatherman_workflow = {
-        "yearly_temperatures": lambda: yearly_weather_results(parsed_argument, BASE_DIRECTORY),
-        "weatherman_monthly_temperatures": lambda: monthly_weather_results(parsed_argument, BASE_DIRECTORY),
-        "weatherman_monthly_barchart": lambda: barchart_weather_results(parsed_argument, BASE_DIRECTORY),
+        "yearly_temperatures": yearly_weather_results,
+        "weatherman_monthly_temperatures": monthly_weather_results,
+        "weatherman_monthly_barchart": barchart_weather_results,
     }
 
-    for weatherman_action_name, weatherman_action_function in weatherman_workflow.items():
-        if hasattr(parsed_argument, weatherman_action_name) and getattr(parsed_argument, weatherman_action_name):
-            weatherman_action_function()
+    for parser_name, corresponding_function in weatherman_workflow.items():
+        if hasattr(parsed_argument, parser_name) and getattr(parsed_argument, parser_name):
+            corresponding_function(parsed_argument, BASE_DIRECTORY)
 
     
 if __name__ == "__main__":
