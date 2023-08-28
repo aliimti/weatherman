@@ -15,7 +15,7 @@ def validate_input_date(date_input):
     return False
 
 
-def convert_month(weather_month_input):
+def convert_month_name(weather_month_input):
     month_number = int(weather_month_input)
     if 1 <= month_number <= 12:
         return calendar.month_abbr[month_number]
@@ -30,10 +30,8 @@ def receive_weather_file_names(BASE_DIRECTORY, yearly_temperatures, weather_mont
     return weatherman_file_names
 
 
-def read_weather_files(yearly_temperatures, weather_month, BASE_DIRECTORY):
+def read_weather_files(weatherman_file_names):
     weather_records = []
-
-    weatherman_file_names = receive_weather_file_names(BASE_DIRECTORY, yearly_temperatures, weather_month)
 
     for weathermas_file_path in weatherman_file_names:
         with open(weathermas_file_path, 'r') as weather_file:
@@ -43,19 +41,20 @@ def read_weather_files(yearly_temperatures, weather_month, BASE_DIRECTORY):
 
 
 def calculate_yearly_weather_records(weather_records):
-    maximum_temp_record = max(weather_records, key=lambda x: float(x.get('Max TemperatureC', '-inf') or '-inf'))
-    minimum_temp_record = min(weather_records, key=lambda x: float(x.get('Min TemperatureC', 'inf') or 'inf'))
+    maximum_temperature_record = max(weather_records, key=lambda x: float(x.get('Max TemperatureC', '-inf') or '-inf'))
+    minimum_temperature_record = min(weather_records, key=lambda x: float(x.get('Min TemperatureC', 'inf') or 'inf'))
     most_humidity_record = max(weather_records, key=lambda x: float(x.get('Max Humidity', '0') or '0'))
 
     yearly_weather_record = {
-        'max_temp_value': float(maximum_temp_record['Max TemperatureC']),
-        'max_temp_day': maximum_temp_record['PKT'],
-        'min_temp_value': float(minimum_temp_record['Min TemperatureC']),
-        'min_temp_day': minimum_temp_record['PKT'],
+        'max_temp_value': float(maximum_temperature_record['Max TemperatureC']),
+        'max_temp_day': maximum_temperature_record['PKT'],
+        'min_temp_value': float(minimum_temperature_record['Min TemperatureC']),
+        'min_temp_day': minimum_temperature_record['PKT'],
         'max_humidity_value': float(most_humidity_record['Max Humidity']),
         'max_humidity_day': most_humidity_record['PKT']
     }
 
+    print(maximum_temperature_record)
     return yearly_weather_record
 
 
@@ -135,24 +134,27 @@ def parse_arguments():
     return args
 
 
-def monthly_weather_results(parsed_argument, BASE_DIRECTORY):
+def execute_monthly_weather_results(parsed_argument, BASE_DIRECTORY):
     yearly_temperatures, weather_month_input = parsed_argument.weatherman_monthly_temperatures.split('/')
-    weather_month = convert_month(weather_month_input)
-    weather_records = read_weather_files(yearly_temperatures, weather_month, BASE_DIRECTORY)
+    weather_month = convert_month_name(weather_month_input)
+    weatherman_file_names = receive_weather_file_names(BASE_DIRECTORY, yearly_temperatures, weather_month)
+    weather_records = read_weather_files(weatherman_file_names)
     statistics_month = calculate_monthly_weather_record(weather_records)
     print_monthly_weather_record(statistics_month)
 
 
-def barchart_weather_results(parsed_argument, BASE_DIRECTORY):
+def execute_barchart_weather_results(parsed_argument, BASE_DIRECTORY):
     yearly_temperatures, weather_month_input = parsed_argument.weatherman_monthly_barchart.split('/')
-    weather_month = convert_month(weather_month_input)
-    weather_records = read_weather_files(yearly_temperatures, weather_month, BASE_DIRECTORY)
+    weather_month = convert_month_name(weather_month_input)
+    weatherman_file_names = receive_weather_file_names(BASE_DIRECTORY, yearly_temperatures, weather_month)
+    weather_records = read_weather_files(weatherman_file_names)
     generate_weatherman_monthly_barchart(weather_records)
 
 
-def yearly_weather_results(parsed_argument, BASE_DIRECTORY):
+def execute_yearly_weather_results(parsed_argument, BASE_DIRECTORY):
     yearly_temperatures = parsed_argument.yearly_temperatures
-    weather_records = read_weather_files(yearly_temperatures, None, BASE_DIRECTORY)
+    weatherman_file_names = receive_weather_file_names(BASE_DIRECTORY, yearly_temperatures, None)
+    weather_records = read_weather_files(weatherman_file_names)
     statistics_year = calculate_yearly_weather_records(weather_records)
     print_yearly_weather_record(statistics_year)
 
@@ -162,9 +164,9 @@ def main():
     parsed_argument = parse_arguments()
 
     weatherman_workflow = {
-        "yearly_temperatures": yearly_weather_results,
-        "weatherman_monthly_temperatures": monthly_weather_results,
-        "weatherman_monthly_barchart": barchart_weather_results,
+        "yearly_temperatures": execute_yearly_weather_results,
+        "weatherman_monthly_temperatures": execute_monthly_weather_results,
+        "weatherman_monthly_barchart": execute_barchart_weather_results,
     }
 
     for parser_name, corresponding_function in weatherman_workflow.items():
